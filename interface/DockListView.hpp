@@ -18,10 +18,10 @@ using Observable::ObservableMap;
 
 
 template <typename Item>
-class GridListItem: public BView {
+class DockListItem: public BView {
 public:
-							GridListItem(Item item);
-	virtual					~GridListItem();
+							DockListItem(Item item);
+	virtual					~DockListItem();
 
 protected:
 	Item					fItem;
@@ -29,26 +29,26 @@ protected:
 
 
 template <typename Item>
-GridListItem<Item>::GridListItem(Item item)
+DockListItem<Item>::DockListItem(Item item)
 	: BView("item", B_WILL_DRAW | B_FRAME_EVENTS),
 	fItem(item)
 {
 }
 
 template <typename Item>
-GridListItem<Item>::~GridListItem()
+DockListItem<Item>::~DockListItem()
 {
 }
 
 
-// template<Derived<GridListItem> T, typename Key, typename Value>
+// template<Derived<DockListItem> T, typename Key, typename Value>
 template<typename T, typename Key, typename Value>
-class GridListView: public BView {
+class DockListView: public BView {
 public:
-									GridListView(const char* name,
+									DockListView(const char* name,
 										ObservableMap<Key, Value>* dataSource,
 										orientation orientation = B_VERTICAL);
-	virtual							~GridListView();
+	virtual							~DockListView();
 
 	void 							SetDataSource(ObservableMap<Key, Value>* dataSource);
 
@@ -69,7 +69,7 @@ private:
 
 
 template<typename T, typename Key, typename Value>
-GridListView<T, Key, Value>::GridListView(const char* name,
+DockListView<T, Key, Value>::DockListView(const char* name,
 								ObservableMap<Key, Value>* dataSource,
 								orientation orientation)
 	: BView(name, B_WILL_DRAW | B_FRAME_EVENTS | B_SCROLL_VIEW_AWARE),
@@ -82,14 +82,14 @@ GridListView<T, Key, Value>::GridListView(const char* name,
 
 
 template<typename T, typename Key, typename Value>
-GridListView<T, Key, Value>::~GridListView()
+DockListView<T, Key, Value>::~DockListView()
 {
 }
 
 
 template<typename T, typename Key, typename Value>
 void
-GridListView<T, Key, Value>::AttachedToWindow()
+DockListView<T, Key, Value>::AttachedToWindow()
 {
 	_InitData();
 }
@@ -97,7 +97,7 @@ GridListView<T, Key, Value>::AttachedToWindow()
 
 template<typename T, typename Key, typename Value>
 void
-GridListView<T, Key, Value>::Draw(BRect updateRect)
+DockListView<T, Key, Value>::Draw(BRect updateRect)
 {
 	SetExplicitSize(fLayout.View()->Bounds().Size());
 }
@@ -105,7 +105,7 @@ GridListView<T, Key, Value>::Draw(BRect updateRect)
 
 template<typename T, typename Key, typename Value>
 void
-GridListView<T, Key, Value>::SetDataSource(ObservableMap<Key, Value>* dataSource)
+DockListView<T, Key, Value>::SetDataSource(ObservableMap<Key, Value>* dataSource)
 {
 	for (int i = 0; i < CountChildren(); i++)
 		RemoveChild(ChildAt(i));
@@ -116,7 +116,7 @@ GridListView<T, Key, Value>::SetDataSource(ObservableMap<Key, Value>* dataSource
 
 template<typename T, typename Key, typename Value>
 void
-GridListView<T, Key, Value>::TargetedByScrollView(BScrollView* scrollView)
+DockListView<T, Key, Value>::TargetedByScrollView(BScrollView* scrollView)
 {
 	BView::TargetedByScrollView(scrollView);
 	_FixupScrollBar();
@@ -125,7 +125,7 @@ GridListView<T, Key, Value>::TargetedByScrollView(BScrollView* scrollView)
 
 template<typename T, typename Key, typename Value>
 void
-GridListView<T, Key, Value>::MessageReceived(BMessage* message)
+DockListView<T, Key, Value>::MessageReceived(BMessage* message)
 {
 	switch(message->what) {
 		case B_OBSERVER_NOTICE_CHANGE: {
@@ -164,7 +164,7 @@ GridListView<T, Key, Value>::MessageReceived(BMessage* message)
 
 template<typename T, typename Key, typename Value>
 void
-GridListView<T, Key, Value>::ScrollTo(BPoint point)
+DockListView<T, Key, Value>::ScrollTo(BPoint point)
 {
 	BView::ScrollTo(point);
 }
@@ -172,7 +172,7 @@ GridListView<T, Key, Value>::ScrollTo(BPoint point)
 
 template<typename T, typename Key, typename Value>
 void
-GridListView<T, Key, Value>::_InitData()
+DockListView<T, Key, Value>::_InitData()
 {
 	// TODO: if StartWatching fails we need to notify the caller. Maybe raising an exception?
 	fDataSource->StartWatching(this, Observable::ItemInserted);
@@ -188,7 +188,7 @@ GridListView<T, Key, Value>::_InitData()
 
 template<typename T, typename Key, typename Value>
 void
-GridListView<T, Key, Value>::_FixupScrollBar()
+DockListView<T, Key, Value>::_FixupScrollBar()
 {
 	// printf("_FixupScrollBar()\n");
 	BScrollBar* vertScroller = ScrollBar(B_VERTICAL);

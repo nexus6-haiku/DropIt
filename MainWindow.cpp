@@ -5,7 +5,7 @@
 
 #include "DropView.h"
 #include "DroppedItem.h"
-#include "GridListView.h"
+#include "DockListView.hpp"
 #include "MainWindow.h"
 
 #include <AppDefs.h>
@@ -33,7 +33,7 @@ MainWindow::MainWindow(void)
 	fButton = new BButton("Dropped!", new BMessage(kMsgDismiss));
 	fDropView = new DropView();
 
-	auto gridList = new GridListView<DroppedItem, BString, DragAndDrop::DragAndDrop*>("dock",
+	auto gridList = new DockListView<DroppedItem, BString, DragAndDrop::DragAndDrop*>("dock",
 		&fNegotiations,	B_VERTICAL);
 
 	auto scrollView = new BScrollView("scroll_trans", gridList, B_WILL_DRAW,
