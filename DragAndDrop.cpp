@@ -17,7 +17,8 @@ namespace DragAndDrop {
 		fNegotiationID(nullptr),
 		fIsNegotiated(true),
 		fDragMessage(dragMessage),
-		fSender(dragMessage->ReturnAddress())
+		fSender(dragMessage->ReturnAddress()),
+		fCompleted(false)
 	{
 		// set message and negotiation ID
 		_DetectNegotiation();
@@ -33,6 +34,17 @@ namespace DragAndDrop {
 	{
 	}
 
+
+	void
+	DragAndDrop::NotifyCompleted(BHandler *replyTo)
+	{
+		BMessenger replyToMessenger(replyTo);
+		BMessage replyMessage(kMsgNegotiationFinished);
+		replyMessage.AddString("dropit:negotiation_id", fNegotiationID);
+		replyToMessenger.SendMessage(&replyMessage);
+		printf("kMsgNegotiationFinished sent\n");
+	}
+
 	void
 	DragAndDrop::ProcessReply(BMessage *message, BHandler *replyTo)
 	{
@@ -45,25 +57,43 @@ namespace DragAndDrop {
 			fSender.SendMessage(message);
 			while (!message->WasDelivered())
 				sleep(500);
-			BMessenger replyToMessenger(replyTo);
-			BMessage replyMessage(kMsgNegotiationFinished);
-			replyMessage.AddString("dropit:negotiation_id", fNegotiationID);
-			replyToMessenger.SendMessage(&replyMessage);
-			// printf("was delivered, sending kMsgNegotiationFinished\n");
+			// NotifyCompleted(replyTo);
+			Completed();
+			printf("reply was delivered, negotiation completed\n");
 		}
 	}
+
+	bool
+	DragAndDrop::IsNegotiated() const
+	{
+		return fIsNegotiated;
+	}
+
 
 	void
 	DragAndDrop::_DetectNegotiation()
 	{
 		// TODO
-		fIsNegotiated = true;
+		fIsNegotiated = false;
 	}
+
 
 	BString
 	DragAndDrop::NegotiationID() const
 	{
 		return fNegotiationID;
+	}
+
+	bool
+	DragAndDrop::IsCompleted() const
+	{
+		return fCompleted;
+	}
+
+	void
+	DragAndDrop::Completed()
+	{
+		fCompleted = true;
 	}
 
 }

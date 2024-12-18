@@ -53,17 +53,20 @@ void
 MainWindow::MessageReceived(BMessage *message)
 {
 	if (message->IsReply()) {
-		// printf("MainWindow::MessageReceived Is Reply\n");
-		// message->PrintToStream();
+		printf("MainWindow::MessageReceived Is Reply\n");
+		message->PrintToStream();
 		const BMessage *previous = message->Previous();
 		if (previous != nullptr) {
-			// printf("MainWindow::MessageReceived previous message is present.\n");
+			printf("MainWindow::MessageReceived previous message is present.\n");
 			BString negotiationID = previous->GetString("dropit:negotiation_id", "");
 			if (!negotiationID.IsEmpty()) {
-				// printf("MainWindow::MessageReceived negotiationID = %s.\n", negotiationID.String());
-				DragAndDrop::DragAndDrop *dnd = fNegotiations.Get(negotiationID);
-				// printf("MainWindow::MessageReceived negotiation found.\n");
-				dnd->ProcessReply(message, this);
+				printf("MainWindow::MessageReceived negotiationID = %s.\n", negotiationID.String());
+				fNegotiations.PrintKeysToStream();
+				if (fNegotiations.Find(negotiationID) != fNegotiations.end()) {
+					DragAndDrop::DragAndDrop *dnd = fNegotiations.Get(negotiationID);
+					printf("MainWindow::MessageReceived negotiation found.\n");
+					dnd->ProcessReply(message, this);
+				}
 			} else {
 				return; // TODO: log the error
 			}
@@ -73,7 +76,7 @@ MainWindow::MessageReceived(BMessage *message)
 	switch(message->what) {
 		case kMsgDismiss: {
 			fPanels->SetVisibleItem(0);
-			fHasItems = false;
+			fHasItems = fNegotiations.Size();
 			// ShowWindow(false);
 			break;
 		}
@@ -83,13 +86,12 @@ MainWindow::MessageReceived(BMessage *message)
 			if (message->FindMessage("dropped_message", droppedMsg) == B_OK) {
 				auto dragAndDrop = new DragAndDrop::DragAndDrop(droppedMsg);
 				fNegotiations.Insert(dragAndDrop->NegotiationID(), dragAndDrop);
-				// droppedMsg->PrintToStream();
-				// fDock.Add(new DroppedItem(droppedMsg));
-				// fDock.View()->Invalidate();
+				fNegotiations.PrintKeysToStream();
+				droppedMsg->PrintToStream();
 			}
 			fPanels->SetVisibleItem(1);
-			fHasItems = true;
-			ShowWindow(true);
+			fHasItems = fNegotiations.Size();
+			ShowWindow(fHasItems);
 			break;
 		}
 		case kMsgDragging: {
@@ -102,8 +104,13 @@ MainWindow::MessageReceived(BMessage *message)
 		}
 		case DragAndDrop::kMsgNegotiationFinished: {
 			BString negotiationID = message->GetString("dropit:negotiation_id", "");
+			printf("MainWindow::MessageReceived kMsgNegotiationFinished: %s\n", negotiationID.String());
+			fNegotiations.PrintKeysToStream();
 			fNegotiations.Erase(negotiationID);
-			SendNotices(DragAndDrop::kMsgNegotiationFinished, message);
+			printf("MainWindow::MessageReceived %s erased\n", negotiationID.String());
+			fNegotiations.PrintKeysToStream();
+			fHasItems = fNegotiations.Size();
+			ShowWindow(fHasItems);
 			break;
 		}
 		default: {

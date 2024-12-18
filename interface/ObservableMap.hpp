@@ -12,8 +12,9 @@
 #include "interface/GMessage.hpp"
 
 #include <functional>
-#include <vector>
+#include <iostream>
 #include <map>
+#include <vector>
 
 using std::map;
 using std::vector;
@@ -251,8 +252,12 @@ namespace Observable {
 		bool 							Erase(const Key& key);
 		void 							Clear();
 		auto							Size() const { return fMap.size(); };
+		auto							Find(Key key) { return fMap.find(key); }
+
 		auto	 						begin() { return fMap.begin(); };
 		auto		 					end() { return fMap.end(); };
+
+		void							PrintKeysToStream() const;
 
 		virtual status_t				StartWatching(BHandler* observer, uint32 what) override;
 		virtual status_t				StartWatchingAll(BHandler* observer) override;
@@ -367,6 +372,16 @@ namespace Observable {
 			fObserverList = new (std::nothrow) Private::ObserverList();
 
 		return fObserverList;
+	}
+
+
+	template<typename Key, typename Value>
+	void
+	ObservableMap<Key, Value>::PrintKeysToStream() const
+	{
+		for (auto it = fMap.begin(); it != fMap.end(); ++it) {
+			std::cout << "Key = " << it->first << std::endl;
+		}
 	}
 
 }

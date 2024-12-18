@@ -33,9 +33,12 @@ namespace DragAndDrop {
 
 		BMessage*						DragMessage() { return fDragMessage; }
 
+		bool							IsCompleted() const;
+		void							Completed();
+		void							NotifyCompleted(BHandler *replyTo);
+
 	private:
 		bool							fIsNegotiated;
-		// std::map<BString, BMessage *>	fMessages;
 		BMessage*						fDragMessage;
 		BString							fNegotiationID;
 
@@ -43,6 +46,8 @@ namespace DragAndDrop {
 
 		BMessenger						fSender;
 		BMessenger						freceiver;
+
+		bool							fCompleted;
 	};
 
 }

@@ -133,23 +133,19 @@ DockListView<T, Key, Value>::MessageReceived(BMessage* message)
 			message->FindInt32(B_OBSERVE_WHAT_CHANGE, &code);
 			switch (code) {
 				case Observable::ItemInserted: {
-					// printf("Observable::ItemInserted\n");
+					printf("Observable::ItemInserted\n");
 					// message->PrintToStream();
 					GMessage *msg = (GMessage *)message;
 					Key key = (*msg)["key"];
 					// printf("key = %s\n", key.String());
 					auto item = fDataSource->Get(key);
-					auto dm = item->DragMessage();
-					// dm->PrintToStream();
-					fLayout.Add(new T(dm));
+					fLayout.Add(new T(item));
 					_FixupScrollBar();
 					break;
 				}
 				case Observable::ItemErased: {
-					// GMessage *msg = (GMessage *)message;
-					// Key key = (*msg)["key"];
-					// SendNotices(DragAndDrop::kMsgNegotiationFinished, message);
-					// SendNotices(Observable::ItemErased, message);
+					printf("Observable::ItemErased\n");
+					SendNotices(Observable::ItemErased, message);
 					break;
 				}
 				default:
@@ -179,8 +175,10 @@ DockListView<T, Key, Value>::_InitData()
 	fDataSource->StartWatching(this, Observable::ItemErased);
 	fDataSource->StartWatching(this, Observable::ItemsCleared);
 
-	for (auto it = fDataSource->begin(); it != fDataSource->end(); ++it)
-		fLayout.Add(new T(it->second->DragMessage()));
+	for (auto it = fDataSource->begin(); it != fDataSource->end(); ++it) {
+		auto item = new T(it->second);
+		fLayout.Add(item);
+	}
 
 	_FixupScrollBar();
 }

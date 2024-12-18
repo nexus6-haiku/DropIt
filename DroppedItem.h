@@ -6,24 +6,33 @@
 #pragma once
 
 #include "DragAndDrop.h"
-// #include "interface/GridListView/GridListView.h"
+#include "interface/Task.hpp"
+
 #include <View.h>
 
 class BBitmap;
+class BMessageRunner;
 
-// class DroppedItem: public GridListItem<BMessage*> {
+using namespace Genio::Task;
+
+using dnd = DragAndDrop::DragAndDrop;
+
 class DroppedItem: public BView {
 public:
-					DroppedItem(BMessage* item);
+					DroppedItem(dnd* item);
 					~DroppedItem();
 
 	virtual void 	AttachedToWindow() override;
 	virtual void 	Draw(BRect updateRect) override;
 	virtual	void	MouseDown(BPoint oldWhere) override;
+	virtual	void	MouseUp(BPoint oldWhere) override;
 	virtual void 	MessageReceived(BMessage *message) override;
 
 private:
-	BMessage*		fItem;
+	dnd*			fItem;
 	BBitmap*		fIcon;
-	// BView*			fView;
+	BMessageRunner*	fRunner;
+	Task<void>*		fTimeoutTask;
+	bool			fRedragging;
+	BString			fLabel;
 };
