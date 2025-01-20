@@ -28,6 +28,10 @@ public:
 	virtual	void	MouseUp(BPoint oldWhere) override;
 	virtual void 	MessageReceived(BMessage *message) override;
 
+	virtual	BSize	MinSize() override;
+	virtual	BSize	MaxSize() override;
+	virtual	BSize	PreferredSize() override;
+
 private:
 	dnd*			fItem;
 	BBitmap*		fIcon;
@@ -35,4 +39,7 @@ private:
 	Task<void>*		fTimeoutTask;
 	bool			fRedragging;
 	BString			fLabel;
+	float			fLabelHeight;
+
+	void			_CalculateSize();
 };

@@ -109,7 +109,7 @@ SYMBOLS :=
 DEBUGGER := TRUE
 
 #	Specify any additional compiler flags to be used.
-COMPILER_FLAGS = -std=c++20
+COMPILER_FLAGS = -std=c++20 -gdwarf-3
 
 #	Specify any additional linker flags to be used.
 LINKER_FLAGS =

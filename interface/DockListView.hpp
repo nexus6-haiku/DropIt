@@ -57,14 +57,15 @@ public:
 	virtual void 					TargetedByScrollView(BScrollView* scrollView) override;
 	virtual void					MessageReceived(BMessage* message) override;
 	virtual void					ScrollTo(BPoint point) override;
+
 private:
 		ObservableMap<Key, Value>*	fDataSource;
 		BLayoutBuilder::Group<>		fLayout;
 		BScrollView*				fScrollView;
 
-		void						_FixupScrollBar();
 		void						_InitData();
-
+		void						_FixupScrollBar();
+		void						_RedoLayout();
 };
 
 
@@ -75,9 +76,10 @@ DockListView<T, Key, Value>::DockListView(const char* name,
 	: BView(name, B_WILL_DRAW | B_FRAME_EVENTS | B_SCROLL_VIEW_AWARE),
 	fDataSource(dataSource)
 {
-	(fLayout = BLayoutBuilder::Group<>(this,orientation))
-		.SetInsets(10, 20)
-		.SetExplicitAlignment(BAlignment(B_ALIGN_HORIZONTAL_CENTER, B_ALIGN_TOP));
+	(fLayout = BLayoutBuilder::Group<>(this, orientation, B_USE_SMALL_SPACING))
+		.SetInsets(10, 10, 10, 10)
+		.SetExplicitAlignment(BAlignment(B_ALIGN_HORIZONTAL_CENTER, B_ALIGN_MIDDLE));
+		// .AddGlue();
 }
 
 
@@ -91,6 +93,7 @@ template<typename T, typename Key, typename Value>
 void
 DockListView<T, Key, Value>::AttachedToWindow()
 {
+	BView::AttachedToWindow();
 	_InitData();
 }
 
@@ -99,7 +102,8 @@ template<typename T, typename Key, typename Value>
 void
 DockListView<T, Key, Value>::Draw(BRect updateRect)
 {
-	SetExplicitSize(fLayout.View()->Bounds().Size());
+	auto bounds = fLayout.View()->Bounds();
+	SetExplicitSize(bounds.Size());
 }
 
 
@@ -118,8 +122,8 @@ template<typename T, typename Key, typename Value>
 void
 DockListView<T, Key, Value>::TargetedByScrollView(BScrollView* scrollView)
 {
-	BView::TargetedByScrollView(scrollView);
-	_FixupScrollBar();
+	// BView::TargetedByScrollView(scrollView);
+	// _FixupScrollBar();
 }
 
 
@@ -128,6 +132,11 @@ void
 DockListView<T, Key, Value>::MessageReceived(BMessage* message)
 {
 	switch(message->what) {
+		case 'rdlo': {
+			printf("Redo layout\n");
+			_RedoLayout();
+			break;
+		}
 		case B_OBSERVER_NOTICE_CHANGE: {
 			int32 code;
 			message->FindInt32(B_OBSERVE_WHAT_CHANGE, &code);
@@ -139,12 +148,17 @@ DockListView<T, Key, Value>::MessageReceived(BMessage* message)
 					Key key = (*msg)["key"];
 					// printf("key = %s\n", key.String());
 					auto item = fDataSource->Get(key);
-					fLayout.Add(new T(item));
-					_FixupScrollBar();
+					auto droppeditem = new T(item);
+					fLayout.Add(droppeditem);
+					// fLayout.AddGlue();
+					_RedoLayout();
 					break;
 				}
 				case Observable::ItemErased: {
 					printf("Observable::ItemErased\n");
+					message->AddMessenger("sender", BMessenger(this));
+					message->RemoveData("be:observe_orig_what");
+					message->RemoveData("be:observe_change_what");
 					SendNotices(Observable::ItemErased, message);
 					break;
 				}
@@ -179,8 +193,7 @@ DockListView<T, Key, Value>::_InitData()
 		auto item = new T(it->second);
 		fLayout.Add(item);
 	}
-
-	_FixupScrollBar();
+	_RedoLayout();
 }
 
 
@@ -188,35 +201,45 @@ template<typename T, typename Key, typename Value>
 void
 DockListView<T, Key, Value>::_FixupScrollBar()
 {
-	// printf("_FixupScrollBar()\n");
+	printf("_FixupScrollBar()\n");
+
+	BRect bounds = Bounds();
+	if (bounds.Size().Height() <= 0 || bounds.Size().Width() <= 0)
+		return;
+
 	BScrollBar* vertScroller = ScrollBar(B_VERTICAL);
 	if (vertScroller != NULL) {
-		BRect bounds = Bounds();
+
 		int32 size = fDataSource->Size();
 		int32 count = fLayout.View()->CountChildren();
-		// printf("Size %d - count %d\n", size, count);
-		// printf("Bounds: ", size, count);
+		printf("Size %d - count %d\n", size, count);
+		// printf("Bounds: ");
 		// bounds.PrintToStream();
 
 		float itemHeight = 0.0;
 
 		if (size > 0) {
-			// auto itemFrame = fLayout.View()->ChildAt(0)->Bounds();
-			auto itemFrame = fLayout.View()->ChildAt(size - 2)->Frame();
-			// printf("Item frame: ");
-			// itemFrame.PrintToStream();
-			itemHeight = itemFrame.bottom + 40;
-
+			// for (int i = 0; i < count; i++) {
+				auto itemFrame = fLayout.View()->ChildAt(count - 1)->Frame();
+				// printf("Item frame: ");
+				// itemFrame.PrintToStream();
+				auto currentHeight = itemFrame.bottom;
+				itemHeight = itemFrame.bottom;
+				// if (currentHeight > itemHeight)
+					// itemHeight = currentHeight;
+				itemHeight += 17;
+			// }
 		}
 		// printf("itemHeight %f\n", itemHeight);
-
-		if (bounds.Height() > itemHeight) {
+		if (bounds.Height() >= itemHeight) {
 			// no scrolling
 			vertScroller->SetRange(0.0, 0.0);
 			vertScroller->SetValue(0.0);
 				// also scrolls to the top
+			// printf("bounds.Height() >= itemHeight\n");
 		} else {
-			vertScroller->SetRange(0.0, itemHeight - bounds.Height() - 1.0);
+			// printf("bounds.Height() < itemHeight\n");
+			vertScroller->SetRange(0.0, itemHeight - bounds.Height());
 			vertScroller->SetProportion(bounds.Height () / itemHeight);
 			// scroll up if there is empty room on bottom
 			if (itemHeight < bounds.bottom)
@@ -224,8 +247,8 @@ DockListView<T, Key, Value>::_FixupScrollBar()
 		}
 
 		if (size != 0) {
-			auto steps = ceilf((fLayout.View()->ChildAt(size - 2))->Frame().Height());
-			// printf("Steps %f\n", steps);
+			// auto steps = ceilf((fLayout.View()->ChildAt(count - 1))->Frame().Height());
+			auto steps = ceilf(itemHeight);
 			vertScroller->SetSteps(steps, bounds.Height());
 		}
 	}
@@ -245,6 +268,14 @@ DockListView<T, Key, Value>::_FixupScrollBar()
 			horizontalScroller->SetProportion(scrollBarSize.Width() / w);
 		}
 	}
-
-	Invalidate();
 }
+
+template<typename T, typename Key, typename Value>
+void
+DockListView<T, Key, Value>::_RedoLayout()
+{
+	Layout(true);
+	_FixupScrollBar();
+}
+
+

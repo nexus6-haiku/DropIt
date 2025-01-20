@@ -12,6 +12,7 @@
 #include <Bitmap.h>
 #include <Button.h>
 #include <Catalog.h>
+#include <LayoutUtils.h>
 #include <MessageRunner.h>
 #include <View.h>
 #include <Window.h>
@@ -40,34 +41,32 @@ DroppedItem::DroppedItem(dnd *item)
 DroppedItem::~DroppedItem()
 {
 	delete fIcon;
-	printf("DroppedItem::~DroppedItem()\n");
+	// printf("DroppedItem::~DroppedItem()\n");
 }
 
 
 void
 DroppedItem::AttachedToWindow()
 {
+	// printf("DroppedItem::AttachedToWindow()\n");
+
 	fIcon = new BBitmap(BRect(0, 0, 128 * 0.5 - 1,
 		128 * 0.5 - 1), B_RGBA32);
 	GetVectorIcon("default", fIcon);
-
-	SetExplicitSize(fIcon->Bounds().Size());
 
 	if (Parent()->LockLooper()) {
 		Parent()->StartWatching(this, Observable::ItemErased);
 		Parent()->UnlockLooper();
 	}
 
-	SetToolTip(fLabel);
-
-	printf("DroppedItem::AttachedToWindow()\n");
+	_CalculateSize();
 }
 
 
 void
 DroppedItem::Draw(BRect updateRect)
 {
-	printf("DroppedItem::Draw(BRect updateRect)\n");
+	// printf("DroppedItem::Draw(BRect updateRect) START\n");
 	SetDrawingMode(B_OP_ALPHA);
 	BPoint iconStartingPoint((Bounds().Width() - fIcon->Bounds().Width()) / 2,
 		(Bounds().Height() - fIcon->Bounds().Height()) / 2);
@@ -79,15 +78,15 @@ DroppedItem::Draw(BRect updateRect)
 	BString truncatedString(fLabel);
 	font.TruncateString(&truncatedString, B_TRUNCATE_MIDDLE, size.Width());
 
-	font_height fheight;
-	font.GetHeight(&fheight);
-	auto height = ceilf(fheight.ascent) + ceilf(fheight.descent) + ceilf(fheight.leading) + 4;
-
-	MovePenBy(iconStartingPoint.x, size.Height() + height);
-
-	SetExplicitSize(BSize(size.Width(), size.Height() + height + fheight.descent));
+	MovePenBy(iconStartingPoint.x, size.Height() + fLabelHeight);
 
 	DrawString(truncatedString);
+
+	// BString tooltip = BString("Frame: ");
+	// tooltip << fLabel << " " << Frame().LeftTop().y << " " << Frame().RightBottom().y;
+	// SetToolTip(tooltip);
+	// Frame().PrintToStream();
+	// printf("DroppedItem::Draw(BRect updateRect) END\n");
 }
 
 
@@ -97,7 +96,7 @@ DroppedItem::MouseDown(BPoint where)
 	if (Bounds().Contains(where)) {
 		// printf("drag\n");
 		SetMouseEventMask(B_POINTER_EVENTS, 0);
-		// fItem->PrintToStream();
+		fItem->DragMessage()->PrintToStream();
 		BBitmap *dragicon = new BBitmap(fIcon);
 		DragMessage(fItem->DragMessage(), dragicon, B_OP_ALPHA, BPoint(32,32), (BHandler*)Window());
 		fRedragging = true;
@@ -142,6 +141,9 @@ DroppedItem::MessageReceived(BMessage *message)
 				if (negotiationID == thisID) {
 					printf("negotiationID == thisID\n");
 					RemoveSelf();
+					BMessenger sender;
+					message->FindMessenger("sender", &sender);
+					sender.SendMessage('rdlo');
 					delete this;
 				}
 			}
@@ -158,4 +160,46 @@ DroppedItem::MessageReceived(BMessage *message)
 		default:
 			BView::MessageReceived(message);
 	}
+}
+
+
+BSize
+DroppedItem::MinSize()
+{
+	auto size = BLayoutUtils::ComposeSize(ExplicitMinSize(), BSize(128, 128));
+	// printf("DroppedItem::MinSize() %f %f\n", size.Width(), size.Height());
+	return size;
+}
+
+
+BSize
+DroppedItem::MaxSize()
+{
+	auto size = BView::MaxSize();
+	// printf("DroppedItem::MaxSize() %f %f\n", size.Width(), size.Height());
+	return size;
+}
+
+
+BSize
+DroppedItem::PreferredSize()
+{
+	auto size = BLayoutUtils::ComposeSize(ExplicitMaxSize(), BSize(128, 128));
+	// printf("DroppedItem::PreferredSize() %f %f\n", size.Width(), size.Height());
+	return size;
+}
+
+
+void
+DroppedItem::_CalculateSize()
+{
+	BFont font;
+	GetFont(&font);
+	font_height fheight;
+	font.GetHeight(&fheight);
+	fLabelHeight = ceilf(fheight.ascent) + ceilf(fheight.descent) + ceilf(fheight.leading) + 4;
+	auto size = fIcon->Bounds().Size();
+	SetExplicitSize(BSize(size.Width(), size.Height() + fLabelHeight + fheight.descent));
+	// printf("DroppedItem::_CalculateSize() frame: ");
+	// Frame().PrintToStream();
 }

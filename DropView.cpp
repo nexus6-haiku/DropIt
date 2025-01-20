@@ -69,6 +69,8 @@ DropView::MessageReceived(BMessage *message)
 {
 	if (message->WasDropped()) {
 		// message->PrintToStream();
+		message->RemoveName("_drop_point_");
+		message->RemoveName("_drop_offset_");
 		BMessage *dropMsg = new BMessage(kMsgDropped);
 		dropMsg->AddMessage("dropped_message", message);
 		Window()->PostMessage(dropMsg);
